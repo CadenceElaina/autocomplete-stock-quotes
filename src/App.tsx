@@ -34,7 +34,7 @@ function App() {
   const [searchedQuote, setSearchedQuote] = React.useState("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   /*   const [suggestions, setSuggestions] = React.useState<suggestionType[]>([]); */
-  const [apiCallCount, setApiCallCount] = useState(0);
+  //const [apiCallCount, setApiCallCount] = useState(0);
   /*   const [quote, setQuote] = React.useState<quoteType>({
     symbol: "",
     name: "",
@@ -91,7 +91,7 @@ function App() {
       queryClient.setQueryData(["matches", searchInput], matches);
 
       /*  setSuggestions(utils.cleanseData(matches)); */
-      setApiCallCount((prevCount) => prevCount + 1);
+      //  setApiCallCount((prevCount) => prevCount + 1);
       return cleanseData(matches);
     } catch (error) {
       console.error(error);
@@ -147,7 +147,7 @@ function App() {
 
         /*  setQuote(quoteData); */
         console.log(quoteData);
-        setApiCallCount((prevCount) => prevCount + 1);
+        //setApiCallCount((prevCount) => prevCount + 1);
         return [quoteData];
       } catch (error) {
         console.error(error);
@@ -274,36 +274,6 @@ function App() {
     }
   }, [quoteQuery.isSuccess]);
 
-  /*  useEffect(() => {
-    console.log("Component mounted");
-    // Check if the query has settled
-    if (fetchDataClicked) {
-      if (
-        !quoteQuery.isFetching &&
-        !quoteQuery.isError &&
-        !quoteQuery.isStale
-      ) {
-        setFetchDataClicked(false); // Reset fetchDataClicked to false after the query has settled
-        console.log('fetchdata false')
-        // Check if data is available in the cache
-        const cachedQuote = queryClient.getQueryData(["quote", searchedQuote]);
-
-        if (cachedQuote) {
-          const newCachedQuote = utils.checkCachedQuoteType(cachedQuote);
-          // If data is available in the cache, update the state with the cached data
-          setQuote(newCachedQuote);
-        }
-      }
-    }
-  }, [
-    quoteQuery.isFetching,
-    quoteQuery.isError,
-    quoteQuery.isStale,
-    searchedQuote,
-    fetchDataClicked,
-    queryClient,
-  ]); */
-
   useEffect(() => {
     if (searchInput !== "") {
       // Clear the existing timeout
@@ -360,57 +330,95 @@ function App() {
     }
   };
 
+  const renderQuoteResults = () => {
+    const renderRow = (
+      quote: quoteType,
+      matches: suggestionType[] | undefined
+    ) => (
+      <div key={quote.symbol} className="quote-row">
+        <div className="left-column">
+          <div className="stock-name">{quote.name}</div>
+          <div className="stock-details">{`${quote.symbol} :  ${
+            matches ? matches[0]?.region : ""
+          }`}</div>
+        </div>
+        <div className="right-column">
+          <div className="price">{quote.price}</div>
+          <div className="price-change">{`${quote.priceChange > 0 ? "+" : ""}${
+            quote.priceChange
+          }`}</div>
+          <div className="percent-change">{`${
+            quote.percentChange > 0 ? "+" : ""
+          }${quote.percentChange}%`}</div>
+        </div>
+      </div>
+    );
+
+    if (quoteQuery.data && quoteQuery.data.length === 1) {
+      // Display single result
+      const result = quoteQuery.data[0];
+
+      return (
+        <div className="result-container">
+          {renderRow(result, bestMatchesQuery.data)}
+        </div>
+      );
+    } else if (
+      bestMatchesQuery.data &&
+      quoteQuery.data &&
+      quoteQuery.data.length > 1
+    ) {
+      // Display multiple results
+      return (
+        <div className="result-container">
+          {quoteQuery.data.map((quote) =>
+            renderRow(quote, bestMatchesQuery.data)
+          )}
+        </div>
+      );
+    } else if (bestMatchesQuery.data) {
+      // Display bestMatchesQuery results
+      return (
+        <div className="result-container">
+          {bestMatchesQuery.data.map((result) => (
+            <div key={result.symbol} className="quote-row">
+              <div className="left-column">
+                <div className="stock-name">{result.name}</div>
+                <div className="stock-details">{`${result.symbol} : ${result.region}`}</div>
+              </div>
+              {/* You can decide if you want to display price, price change, percent change for best matches */}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return null; // Return null if there are no results
+  };
+
   return (
     <>
-      <div>
-        <br />
-        fetched {apiCallCount}
-        <br></br>
-        <input value={searchInput} onChange={handleChange}></input>
-        <button onClick={handleClick}>Fetch Data</button>
-        <div className="data">
-          <div className="left">
-            {bestMatchesQuery.data && (
-              <>
-                {bestMatchesQuery.isFetched &&
-                  bestMatchesQuery.data.map((match) => (
-                    <div key={match.symbol}>
-                      {/* Display match information */}
-                      <p>{match.symbol}</p>
-                      <p>{match.name}</p>
-                      {/* Add more fields as needed */}
-                    </div>
-                  ))}
-              </>
-            )}
-          </div>
-          <div className="right">
-            {quoteQuery.data?.map((quote) => (
-              <div key={quote.symbol}>
-                <p>{quote?.name}</p>
-                <p>{quote?.symbol}</p>
-                <p>{quote?.price}</p>
-                <p>{quote?.priceChange}</p>
-                <p>{quote?.percentChange}</p>
-              </div>
-            ))}
-            {/* {!quote ? (
-              <></>
-            ) : searchInput !== quote.symbol ? (
-              <></>
-            ) : (
-              quote?.symbol && (
-                <div>
-                  <p>{quote?.name}</p>
-                  <p>{quote?.symbol}</p>
-                  <p>{quote?.price}</p>
-                  <p>{quote?.priceChange}</p>
-                  <p>{quote?.percentChange}</p>
-                </div>
-              )
-            )} */}
+      <div className="app-container">
+        <div className="header">
+          <div className="header-content">
+            <h1 className="app-title">Stock Finder App</h1>
+            <p className="app-subtitle">
+              Your source for real-time stock information
+            </p>
           </div>
         </div>
+        <div className="search-container">
+          <input
+            className="search-input"
+            value={searchInput}
+            onChange={handleChange}
+            placeholder="Search for stocks..."
+          />
+          <button className="search-button" onClick={handleClick}>
+            Search
+          </button>
+        </div>
+        <div className="data">{renderQuoteResults()}</div>
       </div>
     </>
   );
